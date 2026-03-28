@@ -28,5 +28,8 @@ Thumbs.db
 # Uploads (local file storage)
 uploads/
 
+# Claude Code
+.claude/
+
 # Spring Boot
 spring-shell.log
