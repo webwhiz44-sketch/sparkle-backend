@@ -2,6 +2,7 @@ package com.womensocial.app.service;
 
 import com.womensocial.app.exception.BadRequestException;
 import com.womensocial.app.exception.ResourceNotFoundException;
+import com.womensocial.app.model.dto.request.ChangePasswordRequest;
 import com.womensocial.app.model.dto.request.LoginRequest;
 import com.womensocial.app.model.dto.request.SignupRequest;
 import com.womensocial.app.model.dto.response.AuthResponse;
@@ -91,6 +92,24 @@ public class AuthService {
     public void logout(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        refreshTokenRepository.revokeAllByUser(user);
+    }
+
+    @Transactional
+    public void changePassword(Long userId, ChangePasswordRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new BadRequestException("Current password is incorrect");
+        }
+
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new BadRequestException("New password must be different from the current password");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
         refreshTokenRepository.revokeAllByUser(user);
     }
 

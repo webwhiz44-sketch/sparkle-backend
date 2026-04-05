@@ -51,6 +51,14 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success("Avatar updated", userService.updateAvatar(userId, imageUrl)));
     }
 
+    @DeleteMapping("/me")
+    @Operation(summary = "Delete current user account")
+    public ResponseEntity<ApiResponse<Void>> deleteAccount(@AuthenticationPrincipal UserDetails userDetails) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        userService.deleteAccount(userId);
+        return ResponseEntity.ok(ApiResponse.success("Account deleted successfully", null));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Get public profile of a user")
     public ResponseEntity<ApiResponse<UserResponse>> getPublicProfile(@PathVariable Long id) {

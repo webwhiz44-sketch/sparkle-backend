@@ -51,6 +51,12 @@ public class UserService {
         return UserResponse.from(user);
     }
 
+    @Transactional
+    public void deleteAccount(Long userId) {
+        User user = findUserById(userId);
+        userRepository.delete(user);
+    }
+
     public User findUserById(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));

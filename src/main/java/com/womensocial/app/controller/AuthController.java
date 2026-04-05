@@ -1,5 +1,6 @@
 package com.womensocial.app.controller;
 
+import com.womensocial.app.model.dto.request.ChangePasswordRequest;
 import com.womensocial.app.model.dto.request.LoginRequest;
 import com.womensocial.app.model.dto.request.RefreshTokenRequest;
 import com.womensocial.app.model.dto.request.SignupRequest;
@@ -52,5 +53,14 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> logout(@AuthenticationPrincipal UserDetails userDetails) {
         authService.logout(Long.parseLong(userDetails.getUsername()));
         return ResponseEntity.ok(ApiResponse.success("Logged out successfully", null));
+    }
+
+    @PutMapping("/change-password")
+    @Operation(summary = "Change password")
+    public ResponseEntity<ApiResponse<Void>> changePassword(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody ChangePasswordRequest request) {
+        authService.changePassword(Long.parseLong(userDetails.getUsername()), request);
+        return ResponseEntity.ok(ApiResponse.success("Password changed successfully. Please log in again.", null));
     }
 }
