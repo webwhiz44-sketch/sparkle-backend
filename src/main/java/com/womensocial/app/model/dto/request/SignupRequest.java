@@ -23,4 +23,7 @@ public class SignupRequest {
     private String displayName;
 
     private List<String> interests;
+
+    @NotBlank(message = "Face verification is required to sign up")
+    private String faceVerificationToken;
 }

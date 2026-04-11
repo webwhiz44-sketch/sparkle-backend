@@ -30,6 +30,15 @@ jwt:
   access-token-expiry: 900000       # 15 minutes
   refresh-token-expiry: 604800000   # 7 days
 
+aws:
+  region: ${AWS_REGION:ap-south-1}
+
+face:
+  verification:
+    liveness-confidence-threshold: ${FACE_LIVENESS_THRESHOLD:90.0}
+    gender-confidence-threshold: ${FACE_GENDER_THRESHOLD:85.0}
+    token-expiry-minutes: ${FACE_TOKEN_EXPIRY_MINUTES:15}
+
 file:
   upload-dir: ${FILE_UPLOAD_DIR:./uploads}
 

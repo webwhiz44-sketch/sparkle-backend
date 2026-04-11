@@ -43,6 +43,10 @@ public class User {
     @Builder.Default
     private Boolean isActive = true;
 
+    @Column(name = "face_verified", nullable = false)
+    @Builder.Default
+    private Boolean faceVerified = false;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

@@ -30,12 +30,16 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtTokenProvider tokenProvider;
     private final PasswordEncoder passwordEncoder;
+    private final FaceVerificationService faceVerificationService;
 
     @Value("${jwt.refresh-token-expiry}")
     private long refreshTokenExpiry;
 
     @Transactional
     public AuthResponse signup(SignupRequest request) {
+        // Validate and consume the face verification token before creating the account
+        faceVerificationService.consumeToken(request.getFaceVerificationToken());
+
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new BadRequestException("Email is already registered");
         }
@@ -46,6 +50,7 @@ public class AuthService {
                 .displayName(request.getDisplayName())
                 .interests(request.getInterests())
                 .isActive(true)
+                .faceVerified(true)
                 .build();
 
         user = userRepository.save(user);
