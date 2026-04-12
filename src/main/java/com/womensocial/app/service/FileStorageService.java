@@ -1,20 +1,21 @@
 package com.womensocial.app.service;
 
+import com.google.cloud.storage.BlobId;
+import com.google.cloud.storage.BlobInfo;
+import com.google.cloud.storage.Storage;
 import com.womensocial.app.exception.BadRequestException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.Set;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class FileStorageService {
 
@@ -22,30 +23,60 @@ public class FileStorageService {
             "image/jpeg", "image/png", "image/gif", "image/webp"
     );
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    private static final String GCS_BASE_URL = "https://storage.googleapis.com";
 
-    @Value("${file.upload-dir}")
-    private String uploadDir;
+    private final Storage gcsStorage;
 
-    @Value("${server.port:8080}")
-    private String serverPort;
+    @Value("${gcp.storage.bucket-name}")
+    private String bucketName;
 
+    /**
+     * Upload a post image. Returns a public GCS URL.
+     */
+    public String storePostImage(MultipartFile file) {
+        return upload(file, "posts");
+    }
+
+    /**
+     * Upload a user profile image. Returns a public GCS URL.
+     */
+    public String storeProfileImage(MultipartFile file) {
+        return upload(file, "profiles");
+    }
+
+    /**
+     * Upload a community cover image. Returns a public GCS URL.
+     */
+    public String storeCommunityImage(MultipartFile file) {
+        return upload(file, "communities");
+    }
+
+    /**
+     * Generic upload — kept for backward compatibility with FileUploadController.
+     */
     public String storeImage(MultipartFile file) {
+        return upload(file, "general");
+    }
+
+    private String upload(MultipartFile file, String folder) {
         validateFile(file);
 
+        String extension = getExtension(file.getOriginalFilename());
+        String objectName = folder + "/" + UUID.randomUUID() + "." + extension;
+
         try {
-            Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
-            Files.createDirectories(uploadPath);
+            BlobId blobId = BlobId.of(bucketName, objectName);
+            BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
+                    .setContentType(file.getContentType())
+                    .setCacheControl("public, max-age=31536000") // 1 year cache
+                    .build();
 
-            String extension = getExtension(file.getOriginalFilename());
-            String fileName = UUID.randomUUID() + "." + extension;
-            Path targetPath = uploadPath.resolve(fileName);
+            gcsStorage.create(blobInfo, file.getBytes());
+            log.info("Uploaded to GCS: {}/{}", bucketName, objectName);
 
-            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-            log.info("Stored file: {}", fileName);
-
-            return "/api/uploads/" + fileName;
+            return String.format("%s/%s/%s", GCS_BASE_URL, bucketName, objectName);
         } catch (IOException e) {
-            throw new BadRequestException("Failed to store file: " + e.getMessage());
+            throw new BadRequestException("Failed to upload file: " + e.getMessage());
         }
     }
 

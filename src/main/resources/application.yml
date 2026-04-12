@@ -39,8 +39,9 @@ face:
     gender-confidence-threshold: ${FACE_GENDER_THRESHOLD:85.0}
     token-expiry-minutes: ${FACE_TOKEN_EXPIRY_MINUTES:15}
 
-file:
-  upload-dir: ${FILE_UPLOAD_DIR:./uploads}
+gcp:
+  storage:
+    bucket-name: ${GCS_BUCKET_NAME:sparkle-media-prod}
 
 server:
   port: 8080
