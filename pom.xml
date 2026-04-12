@@ -106,6 +106,13 @@
             <version>2.3.0</version>
         </dependency>
 
+        <!-- GCP Cloud SQL Socket Factory (for Cloud Run → Cloud SQL connection) -->
+        <dependency>
+            <groupId>com.google.cloud.sql</groupId>
+            <artifactId>postgres-socket-factory</artifactId>
+            <version>1.19.0</version>
+        </dependency>
+
         <!-- AWS Rekognition -->
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
