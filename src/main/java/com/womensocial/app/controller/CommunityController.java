@@ -73,6 +73,16 @@ public class CommunityController {
         return ResponseEntity.ok(ApiResponse.success("Left community", null));
     }
 
+    @GetMapping("/my")
+    @Operation(summary = "Get communities the current user has joined")
+    public ResponseEntity<ApiResponse<PagedResponse<CommunityResponse>>> getMyCommunities(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "" + AppConstants.DEFAULT_PAGE_SIZE) int size) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success(communityService.getMyCommunities(userId, page, size)));
+    }
+
     @GetMapping("/{id}/posts")
     @Operation(summary = "Get community feed")
     public ResponseEntity<ApiResponse<PagedResponse<PostResponse>>> getCommunityPosts(

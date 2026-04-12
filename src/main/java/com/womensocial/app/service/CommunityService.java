@@ -117,6 +117,28 @@ public class CommunityService {
         communityRepository.save(community);
     }
 
+    @Transactional(readOnly = true)
+    public PagedResponse<CommunityResponse> getMyCommunities(Long userId, int page, int size) {
+        Page<CommunityMember> memberships = communityMemberRepository.findByUserId(userId,
+                PageRequest.of(page, Math.min(size, AppConstants.MAX_PAGE_SIZE),
+                        Sort.by(Sort.Direction.DESC, "joinedAt")));
+
+        return PagedResponse.<CommunityResponse>builder()
+                .content(memberships.getContent().stream()
+                        .map(cm -> {
+                            CommunityResponse r = CommunityResponse.from(cm.getCommunity());
+                            r.setMember(true);
+                            return r;
+                        })
+                        .toList())
+                .page(memberships.getNumber())
+                .size(memberships.getSize())
+                .totalElements(memberships.getTotalElements())
+                .totalPages(memberships.getTotalPages())
+                .last(memberships.isLast())
+                .build();
+    }
+
     private CommunityResponse enrichWithMemberStatus(CommunityResponse response, Long userId) {
         if (userId != null) {
             response.setMember(communityMemberRepository.existsByCommunityIdAndUserId(response.getId(), userId));

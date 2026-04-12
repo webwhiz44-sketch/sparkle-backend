@@ -91,4 +91,32 @@ public class PostController {
         postService.unlikePost(id, Long.parseLong(userDetails.getUsername()));
         return ResponseEntity.ok(ApiResponse.success(null));
     }
+
+    @PostMapping("/{id}/save")
+    @Operation(summary = "Save (bookmark) a post")
+    public ResponseEntity<ApiResponse<Void>> savePost(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        postService.savePost(id, Long.parseLong(userDetails.getUsername()));
+        return ResponseEntity.ok(ApiResponse.success("Post saved", null));
+    }
+
+    @DeleteMapping("/{id}/save")
+    @Operation(summary = "Unsave (remove bookmark) a post")
+    public ResponseEntity<ApiResponse<Void>> unsavePost(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        postService.unsavePost(id, Long.parseLong(userDetails.getUsername()));
+        return ResponseEntity.ok(ApiResponse.success("Post unsaved", null));
+    }
+
+    @GetMapping("/saved")
+    @Operation(summary = "Get all saved posts for the current user")
+    public ResponseEntity<ApiResponse<PagedResponse<PostResponse>>> getSavedPosts(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "" + AppConstants.DEFAULT_PAGE_SIZE) int size) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success(postService.getSavedPosts(userId, page, size)));
+    }
 }

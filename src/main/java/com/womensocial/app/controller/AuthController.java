@@ -1,8 +1,10 @@
 package com.womensocial.app.controller;
 
 import com.womensocial.app.model.dto.request.ChangePasswordRequest;
+import com.womensocial.app.model.dto.request.ForgotPasswordRequest;
 import com.womensocial.app.model.dto.request.LoginRequest;
 import com.womensocial.app.model.dto.request.RefreshTokenRequest;
+import com.womensocial.app.model.dto.request.ResetPasswordRequest;
 import com.womensocial.app.model.dto.request.SignupRequest;
 import com.womensocial.app.model.dto.response.ApiResponse;
 import com.womensocial.app.model.dto.response.AuthResponse;
@@ -62,5 +64,20 @@ public class AuthController {
             @Valid @RequestBody ChangePasswordRequest request) {
         authService.changePassword(Long.parseLong(userDetails.getUsername()), request);
         return ResponseEntity.ok(ApiResponse.success("Password changed successfully. Please log in again.", null));
+    }
+
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Request a password reset email")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request);
+        return ResponseEntity.ok(ApiResponse.success(
+                "If an account with that email exists, a reset link has been sent.", null));
+    }
+
+    @PostMapping("/reset-password")
+    @Operation(summary = "Reset password using token from email")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        return ResponseEntity.ok(ApiResponse.success("Password has been reset. Please log in with your new password.", null));
     }
 }

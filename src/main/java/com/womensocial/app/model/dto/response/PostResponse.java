@@ -21,6 +21,7 @@ public class PostResponse {
     private int likeCount;
     private int commentCount;
     private boolean likedByMe;
+    private boolean savedByMe;
     private PollResponse poll;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

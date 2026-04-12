@@ -6,6 +6,7 @@ import com.womensocial.app.model.dto.request.CreatePostRequest;
 import com.womensocial.app.model.dto.request.UpdatePostRequest;
 import com.womensocial.app.model.dto.response.PagedResponse;
 import com.womensocial.app.model.dto.response.PostResponse;
+import com.womensocial.app.exception.BadRequestException;
 import com.womensocial.app.model.entity.*;
 import com.womensocial.app.repository.*;
 import com.womensocial.app.util.AppConstants;
@@ -24,6 +25,7 @@ public class PostService {
     private final UserService userService;
     private final CommunityRepository communityRepository;
     private final LikeRepository likeRepository;
+    private final SavedPostRepository savedPostRepository;
     private final PollService pollService;
 
     @Transactional
@@ -120,9 +122,47 @@ public class PostService {
         return toPagedResponse(posts, userId);
     }
 
+    @Transactional
+    public void savePost(Long postId, Long userId) {
+        if (savedPostRepository.existsByUserIdAndPostId(userId, postId)) {
+            throw new BadRequestException("Post already saved");
+        }
+        Post post = findPostById(postId);
+        User user = userService.findUserById(userId);
+        savedPostRepository.save(SavedPost.builder().user(user).post(post).build());
+    }
+
+    @Transactional
+    public void unsavePost(Long postId, Long userId) {
+        savedPostRepository.findByUserIdAndPostId(userId, postId)
+                .ifPresent(savedPostRepository::delete);
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponse<PostResponse> getSavedPosts(Long userId, int page, int size) {
+        Page<SavedPost> saved = savedPostRepository.findByUserId(userId,
+                PageRequest.of(page, Math.min(size, AppConstants.MAX_PAGE_SIZE)));
+        return PagedResponse.<PostResponse>builder()
+                .content(saved.getContent().stream()
+                        .map(sp -> {
+                            PostResponse r = PostResponse.from(sp.getPost());
+                            r.setSavedByMe(true);
+                            r.setLikedByMe(likeRepository.existsByUserIdAndPostId(userId, sp.getPost().getId()));
+                            return r;
+                        })
+                        .toList())
+                .page(saved.getNumber())
+                .size(saved.getSize())
+                .totalElements(saved.getTotalElements())
+                .totalPages(saved.getTotalPages())
+                .last(saved.isLast())
+                .build();
+    }
+
     private PostResponse enrichWithLikeStatus(PostResponse response, Long userId) {
         if (userId != null) {
             response.setLikedByMe(likeRepository.existsByUserIdAndPostId(userId, response.getId()));
+            response.setSavedByMe(savedPostRepository.existsByUserIdAndPostId(userId, response.getId()));
         }
         return response;
     }
