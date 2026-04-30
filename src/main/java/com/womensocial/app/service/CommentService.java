@@ -6,6 +6,7 @@ import com.womensocial.app.model.dto.request.CreateCommentRequest;
 import com.womensocial.app.model.dto.response.CommentResponse;
 import com.womensocial.app.model.dto.response.PagedResponse;
 import com.womensocial.app.model.entity.*;
+import com.womensocial.app.repository.StoryRepository;
 import com.womensocial.app.repository.CommentRepository;
 import com.womensocial.app.repository.LikeRepository;
 import com.womensocial.app.util.AppConstants;
@@ -24,6 +25,7 @@ public class CommentService {
     private final UserService userService;
     private final PostService postService;
     private final AnonymousPostService anonymousPostService;
+    private final StoryRepository storyRepository;
     private final LikeRepository likeRepository;
 
     @Transactional
@@ -72,6 +74,34 @@ public class CommentService {
     @Transactional(readOnly = true)
     public PagedResponse<CommentResponse> getAnonymousPostComments(Long postId, Long userId, int page, int size) {
         Page<Comment> comments = commentRepository.findByAnonymousPostIdAndParentCommentIsNull(postId,
+                PageRequest.of(page, Math.min(size, AppConstants.MAX_PAGE_SIZE),
+                        Sort.by(Sort.Direction.ASC, "createdAt")));
+        return toPagedResponse(comments, userId);
+    }
+
+    @Transactional
+    public CommentResponse commentOnStory(Long storyId, Long userId, CreateCommentRequest request) {
+        Story story = storyRepository.findById(storyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Story not found with id: " + storyId));
+        User user = userService.findUserById(userId);
+        Comment parent = resolveParent(request.getParentCommentId());
+
+        Comment comment = Comment.builder()
+                .user(user)
+                .story(story)
+                .parentComment(parent)
+                .content(request.getContent())
+                .build();
+
+        comment = commentRepository.save(comment);
+        story.setCommentCount(story.getCommentCount() + 1);
+        storyRepository.save(story);
+        return CommentResponse.from(comment);
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponse<CommentResponse> getStoryComments(Long storyId, Long userId, int page, int size) {
+        Page<Comment> comments = commentRepository.findByStoryIdAndParentCommentIsNull(storyId,
                 PageRequest.of(page, Math.min(size, AppConstants.MAX_PAGE_SIZE),
                         Sort.by(Sort.Direction.ASC, "createdAt")));
         return toPagedResponse(comments, userId);

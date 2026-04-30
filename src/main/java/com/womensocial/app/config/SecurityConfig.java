@@ -43,6 +43,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/posts/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/anonymous-posts/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/communities/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/stories/**").permitAll()
                 .anyRequest().authenticated()
             );
 
