@@ -34,6 +34,9 @@ public class UserService {
         if (request.getInterests() != null) {
             user.setInterests(request.getInterests());
         }
+        if (request.getProfileImageUrl() != null) {
+            user.setProfileImageUrl(request.getProfileImageUrl());
+        }
 
         return UserResponse.from(userRepository.save(user));
     }

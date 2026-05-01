@@ -14,4 +14,6 @@ public class UpdateProfileRequest {
     private String bio;
 
     private List<String> interests;
+
+    private String profileImageUrl;
 }
