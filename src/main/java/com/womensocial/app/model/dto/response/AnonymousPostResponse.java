@@ -14,6 +14,7 @@ public class AnonymousPostResponse {
 
     private Long id;
     private String content;
+    private String imageUrl;
     private List<String> topicTags;
     private int likeCount;
     private int commentCount;
@@ -25,6 +26,7 @@ public class AnonymousPostResponse {
         return AnonymousPostResponse.builder()
                 .id(post.getId())
                 .content(post.getContent())
+                .imageUrl(post.getImageUrl())
                 .topicTags(post.getTopicTags())
                 .likeCount(post.getLikeCount())
                 .commentCount(post.getCommentCount())

@@ -1,5 +1,6 @@
 package com.womensocial.app.service;
 
+import com.womensocial.app.exception.BadRequestException;
 import com.womensocial.app.exception.ResourceNotFoundException;
 import com.womensocial.app.exception.UnauthorizedException;
 import com.womensocial.app.model.dto.request.CreateAnonymousPostRequest;
@@ -29,11 +30,18 @@ public class AnonymousPostService {
 
     @Transactional
     public AnonymousPostResponse createPost(Long userId, CreateAnonymousPostRequest request) {
+        boolean hasContent = request.getContent() != null && !request.getContent().isBlank();
+        boolean hasImage = request.getImageUrl() != null && !request.getImageUrl().isBlank();
+        if (!hasContent && !hasImage) {
+            throw new BadRequestException("Post must have content or an image");
+        }
+
         User user = userService.findUserById(userId);
 
         AnonymousPost post = AnonymousPost.builder()
                 .user(user)
                 .content(request.getContent())
+                .imageUrl(request.getImageUrl())
                 .topicTags(request.getTopicTags())
                 .build();
 
