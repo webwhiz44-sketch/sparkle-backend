@@ -59,7 +59,7 @@ public class AnonymousPostService {
         PageRequest pageRequest = PageRequest.of(page, Math.min(size, AppConstants.MAX_PAGE_SIZE),
                 Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<AnonymousPost> posts = userId != null
-                ? anonymousPostRepository.findFeedForUser(userId, pageRequest)
+                ? anonymousPostRepository.findAllExcludingBlocked(userId, pageRequest)
                 : anonymousPostRepository.findAll(pageRequest);
 
         return toPagedResponse(posts, userId);
