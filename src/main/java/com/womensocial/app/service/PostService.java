@@ -71,6 +71,14 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
+    public PagedResponse<PostResponse> getMyPosts(Long userId, int page, int size) {
+        Page<Post> posts = postRepository.findByUserId(userId,
+                PageRequest.of(page, Math.min(size, AppConstants.MAX_PAGE_SIZE),
+                        Sort.by(Sort.Direction.DESC, "createdAt")));
+        return toPagedResponse(posts, userId);
+    }
+
+    @Transactional(readOnly = true)
     public PagedResponse<PostResponse> getPostsByTag(String tag, Long userId, int page, int size) {
         Page<Post> posts = postRepository.findByTag(tag,
                 PageRequest.of(page, Math.min(size, AppConstants.MAX_PAGE_SIZE)));

@@ -114,6 +114,16 @@ public class PostController {
         return ResponseEntity.ok(ApiResponse.success("Post unsaved", null));
     }
 
+    @GetMapping("/my")
+    @Operation(summary = "Get posts by the current user")
+    public ResponseEntity<ApiResponse<PagedResponse<PostResponse>>> getMyPosts(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "" + AppConstants.DEFAULT_PAGE_SIZE) int size) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success(postService.getMyPosts(userId, page, size)));
+    }
+
     @GetMapping("/saved")
     @Operation(summary = "Get all saved posts for the current user")
     public ResponseEntity<ApiResponse<PagedResponse<PostResponse>>> getSavedPosts(
