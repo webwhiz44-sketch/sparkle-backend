@@ -36,12 +36,16 @@ public class PostController {
     }
 
     @GetMapping
-    @Operation(summary = "Get personalized feed")
+    @Operation(summary = "Get personalized feed, or filter by tag")
     public ResponseEntity<ApiResponse<PagedResponse<PostResponse>>> getFeed(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "" + AppConstants.DEFAULT_PAGE_SIZE) int size) {
+            @RequestParam(defaultValue = "" + AppConstants.DEFAULT_PAGE_SIZE) int size,
+            @RequestParam(required = false) String tag) {
         Long userId = userDetails != null ? Long.parseLong(userDetails.getUsername()) : null;
+        if (tag != null && !tag.isBlank()) {
+            return ResponseEntity.ok(ApiResponse.success(postService.getPostsByTag(tag, userId, page, size)));
+        }
         return ResponseEntity.ok(ApiResponse.success(postService.getFeed(userId, page, size)));
     }
 

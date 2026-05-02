@@ -56,10 +56,23 @@ public class AnonymousPostService {
 
     @Transactional(readOnly = true)
     public PagedResponse<AnonymousPostResponse> getFeed(Long userId, int page, int size) {
-        Page<AnonymousPost> posts = anonymousPostRepository.findAllExcludingBlocked(userId,
-                PageRequest.of(page, Math.min(size, AppConstants.MAX_PAGE_SIZE),
-                        Sort.by(Sort.Direction.DESC, "createdAt")));
+        PageRequest pageRequest = PageRequest.of(page, Math.min(size, AppConstants.MAX_PAGE_SIZE),
+                Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<AnonymousPost> posts = userId != null
+                ? anonymousPostRepository.findFeedForUser(userId, pageRequest)
+                : anonymousPostRepository.findAll(pageRequest);
 
+        return toPagedResponse(posts, userId);
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponse<AnonymousPostResponse> getPostsByTag(String tag, Long userId, int page, int size) {
+        Page<AnonymousPost> posts = anonymousPostRepository.findByTag(tag,
+                PageRequest.of(page, Math.min(size, AppConstants.MAX_PAGE_SIZE)));
+        return toPagedResponse(posts, userId);
+    }
+
+    private PagedResponse<AnonymousPostResponse> toPagedResponse(Page<AnonymousPost> posts, Long userId) {
         return PagedResponse.<AnonymousPostResponse>builder()
                 .content(posts.getContent().stream()
                         .map(p -> enrichWithLikeStatus(AnonymousPostResponse.from(p), userId))

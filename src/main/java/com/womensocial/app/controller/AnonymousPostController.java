@@ -35,12 +35,16 @@ public class AnonymousPostController {
     }
 
     @GetMapping
-    @Operation(summary = "Get anonymous feed")
+    @Operation(summary = "Get anonymous feed, or filter by tag")
     public ResponseEntity<ApiResponse<PagedResponse<AnonymousPostResponse>>> getFeed(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "" + AppConstants.DEFAULT_PAGE_SIZE) int size) {
+            @RequestParam(defaultValue = "" + AppConstants.DEFAULT_PAGE_SIZE) int size,
+            @RequestParam(required = false) String tag) {
         Long userId = userDetails != null ? Long.parseLong(userDetails.getUsername()) : null;
+        if (tag != null && !tag.isBlank()) {
+            return ResponseEntity.ok(ApiResponse.success(anonymousPostService.getPostsByTag(tag, userId, page, size)));
+        }
         return ResponseEntity.ok(ApiResponse.success(anonymousPostService.getFeed(userId, page, size)));
     }
 

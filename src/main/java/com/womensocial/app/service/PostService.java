@@ -57,10 +57,18 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public PagedResponse<PostResponse> getFeed(Long userId, int page, int size) {
-        Page<Post> posts = postRepository.findFeedForUser(userId,
-                PageRequest.of(page, Math.min(size, AppConstants.MAX_PAGE_SIZE),
-                        Sort.by(Sort.Direction.DESC, "createdAt")));
+        PageRequest pageRequest = PageRequest.of(page, Math.min(size, AppConstants.MAX_PAGE_SIZE),
+                Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Post> posts = userId != null
+                ? postRepository.findFeedForUser(userId, pageRequest)
+                : postRepository.findAll(pageRequest);
+        return toPagedResponse(posts, userId);
+    }
 
+    @Transactional(readOnly = true)
+    public PagedResponse<PostResponse> getPostsByTag(String tag, Long userId, int page, int size) {
+        Page<Post> posts = postRepository.findByTag(tag,
+                PageRequest.of(page, Math.min(size, AppConstants.MAX_PAGE_SIZE)));
         return toPagedResponse(posts, userId);
     }
 

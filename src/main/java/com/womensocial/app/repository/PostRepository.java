@@ -17,21 +17,40 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     Page<Post> findByUserId(Long userId, Pageable pageable);
 
-    @Query("""
-            SELECT p FROM Post p
-            WHERE p.user.id NOT IN (
-                SELECT b.blocked.id FROM Block b WHERE b.blocker.id = :currentUserId
+    @Query(value = """
+            SELECT p.* FROM posts p
+            WHERE p.user_id NOT IN (
+                SELECT b.blocked_id FROM blocks b WHERE b.blocker_id = :userId
             )
             AND (
-                p.community.id IN (
-                    SELECT cm.community.id FROM CommunityMember cm WHERE cm.user.id = :currentUserId
+                p.community_id IN (
+                    SELECT cm.community_id FROM community_members cm WHERE cm.user_id = :userId
                 )
-                OR EXISTS (
-                    SELECT 1 FROM Post p2 WHERE p2.id = p.id
-                    AND p2.topicTags IS NOT NULL
-                )
+                OR (p.topic_tags IS NOT NULL AND p.topic_tags != '{}'
+                    AND p.topic_tags && (SELECT u.interests FROM users u WHERE u.id = :userId))
+                OR (p.topic_tags IS NULL OR p.topic_tags = '{}')
             )
-            ORDER BY p.createdAt DESC
-            """)
-    Page<Post> findFeedForUser(@Param("currentUserId") Long currentUserId, Pageable pageable);
+            ORDER BY p.created_at DESC
+            """,
+            countQuery = """
+            SELECT COUNT(*) FROM posts p
+            WHERE p.user_id NOT IN (
+                SELECT b.blocked_id FROM blocks b WHERE b.blocker_id = :userId
+            )
+            AND (
+                p.community_id IN (
+                    SELECT cm.community_id FROM community_members cm WHERE cm.user_id = :userId
+                )
+                OR (p.topic_tags IS NOT NULL AND p.topic_tags != '{}'
+                    AND p.topic_tags && (SELECT u.interests FROM users u WHERE u.id = :userId))
+                OR (p.topic_tags IS NULL OR p.topic_tags = '{}')
+            )
+            """,
+            nativeQuery = true)
+    Page<Post> findFeedForUser(@Param("userId") Long userId, Pageable pageable);
+
+    @Query(value = "SELECT p.* FROM posts p WHERE :tag = ANY(p.topic_tags) ORDER BY p.created_at DESC",
+            countQuery = "SELECT COUNT(*) FROM posts p WHERE :tag = ANY(p.topic_tags)",
+            nativeQuery = true)
+    Page<Post> findByTag(@Param("tag") String tag, Pageable pageable);
 }

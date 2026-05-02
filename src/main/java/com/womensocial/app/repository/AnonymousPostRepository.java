@@ -20,6 +20,37 @@ public interface AnonymousPostRepository extends JpaRepository<AnonymousPost, Lo
             """)
     Page<AnonymousPost> findAllExcludingBlocked(@Param("currentUserId") Long currentUserId, Pageable pageable);
 
+    @Query(value = """
+            SELECT ap.* FROM anonymous_posts ap
+            WHERE ap.user_id NOT IN (
+                SELECT b.blocked_id FROM blocks b WHERE b.blocker_id = :userId
+            )
+            AND (
+                ap.topic_tags IS NULL
+                OR ap.topic_tags = '{}'
+                OR ap.topic_tags && (SELECT u.interests FROM users u WHERE u.id = :userId)
+            )
+            ORDER BY ap.created_at DESC
+            """,
+            countQuery = """
+            SELECT COUNT(*) FROM anonymous_posts ap
+            WHERE ap.user_id NOT IN (
+                SELECT b.blocked_id FROM blocks b WHERE b.blocker_id = :userId
+            )
+            AND (
+                ap.topic_tags IS NULL
+                OR ap.topic_tags = '{}'
+                OR ap.topic_tags && (SELECT u.interests FROM users u WHERE u.id = :userId)
+            )
+            """,
+            nativeQuery = true)
+    Page<AnonymousPost> findFeedForUser(@Param("userId") Long userId, Pageable pageable);
+
+    @Query(value = "SELECT ap.* FROM anonymous_posts ap WHERE :tag = ANY(ap.topic_tags) ORDER BY ap.created_at DESC",
+            countQuery = "SELECT COUNT(*) FROM anonymous_posts ap WHERE :tag = ANY(ap.topic_tags)",
+            nativeQuery = true)
+    Page<AnonymousPost> findByTag(@Param("tag") String tag, Pageable pageable);
+
     // Used internally by moderation only
     boolean existsByIdAndUserId(Long id, Long userId);
 }
