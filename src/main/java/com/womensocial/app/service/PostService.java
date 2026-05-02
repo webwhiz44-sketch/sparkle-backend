@@ -48,6 +48,11 @@ public class PostService {
 
         post = postRepository.save(post);
 
+        if (community != null) {
+            community.setPostCount(community.getPostCount() + 1);
+            communityRepository.save(community);
+        }
+
         if (request.getPoll() != null) {
             pollService.createPollForPost(post, request.getPoll());
         }
@@ -96,6 +101,11 @@ public class PostService {
         Post post = findPostById(postId);
         if (!post.getUser().getId().equals(userId)) {
             throw new UnauthorizedException("You can only delete your own posts");
+        }
+        if (post.getCommunity() != null) {
+            Community community = post.getCommunity();
+            community.setPostCount(Math.max(0, community.getPostCount() - 1));
+            communityRepository.save(community);
         }
         postRepository.delete(post);
     }

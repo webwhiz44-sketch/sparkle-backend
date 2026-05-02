@@ -17,6 +17,7 @@ public class CommunityResponse {
     private TopicCategory category;
     private String coverImageUrl;
     private int memberCount;
+    private int postCount;
     private boolean isMember;
     private LocalDateTime createdAt;
 
@@ -28,6 +29,7 @@ public class CommunityResponse {
                 .category(community.getCategory())
                 .coverImageUrl(community.getCoverImageUrl())
                 .memberCount(community.getMemberCount())
+                .postCount(community.getPostCount())
                 .createdAt(community.getCreatedAt())
                 .build();
     }

@@ -38,6 +38,10 @@ public class Community {
     @Builder.Default
     private Integer memberCount = 0;
 
+    @Column(name = "post_count")
+    @Builder.Default
+    private Integer postCount = 0;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
     private User createdBy;

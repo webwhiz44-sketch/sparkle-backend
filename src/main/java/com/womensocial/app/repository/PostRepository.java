@@ -53,4 +53,18 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             countQuery = "SELECT COUNT(*) FROM posts p WHERE :tag = ANY(p.topic_tags)",
             nativeQuery = true)
     Page<Post> findByTag(@Param("tag") String tag, Pageable pageable);
+
+    @Query(value = """
+            SELECT tag FROM (
+                SELECT unnest(topic_tags) AS tag FROM posts
+                WHERE created_at > NOW() - INTERVAL '7 days'
+                UNION ALL
+                SELECT unnest(topic_tags) AS tag FROM anonymous_posts
+                WHERE created_at > NOW() - INTERVAL '7 days'
+            ) t
+            GROUP BY tag
+            ORDER BY COUNT(*) DESC
+            LIMIT 10
+            """, nativeQuery = true)
+    List<String> findTrendingTags();
 }
