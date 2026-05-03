@@ -17,36 +17,13 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     Page<Post> findByUserId(Long userId, Pageable pageable);
 
-    @Query(value = """
-            SELECT p.* FROM posts p
-            WHERE p.user_id NOT IN (
-                SELECT b.blocked_id FROM blocks b WHERE b.blocker_id = :userId
+    @Query("""
+            SELECT p FROM Post p
+            WHERE p.user.id NOT IN (
+                SELECT b.blocked.id FROM Block b WHERE b.blocker.id = :userId
             )
-            AND (
-                p.community_id IN (
-                    SELECT cm.community_id FROM community_members cm WHERE cm.user_id = :userId
-                )
-                OR (p.topic_tags IS NOT NULL AND p.topic_tags != '{}'
-                    AND p.topic_tags && (SELECT u.interests FROM users u WHERE u.id = :userId))
-                OR (p.topic_tags IS NULL OR p.topic_tags = '{}')
-            )
-            ORDER BY p.created_at DESC
-            """,
-            countQuery = """
-            SELECT COUNT(*) FROM posts p
-            WHERE p.user_id NOT IN (
-                SELECT b.blocked_id FROM blocks b WHERE b.blocker_id = :userId
-            )
-            AND (
-                p.community_id IN (
-                    SELECT cm.community_id FROM community_members cm WHERE cm.user_id = :userId
-                )
-                OR (p.topic_tags IS NOT NULL AND p.topic_tags != '{}'
-                    AND p.topic_tags && (SELECT u.interests FROM users u WHERE u.id = :userId))
-                OR (p.topic_tags IS NULL OR p.topic_tags = '{}')
-            )
-            """,
-            nativeQuery = true)
+            ORDER BY p.createdAt DESC
+            """)
     Page<Post> findFeedForUser(@Param("userId") Long userId, Pageable pageable);
 
     @Query(value = "SELECT p.* FROM posts p WHERE :tag = ANY(p.topic_tags) ORDER BY p.created_at DESC",
