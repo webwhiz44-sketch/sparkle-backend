@@ -4,6 +4,8 @@ import com.womensocial.app.exception.ResourceNotFoundException;
 import com.womensocial.app.model.dto.request.UpdateProfileRequest;
 import com.womensocial.app.model.dto.response.UserResponse;
 import com.womensocial.app.model.entity.User;
+import com.womensocial.app.model.enums.FollowStatus;
+import com.womensocial.app.repository.FollowRepository;
 import com.womensocial.app.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,11 +16,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final FollowRepository followRepository;
 
     @Transactional(readOnly = true)
     public UserResponse getProfile(Long userId) {
         User user = findUserById(userId);
-        return UserResponse.from(user);
+        UserResponse response = UserResponse.from(user);
+        response.setFollowerCount(followRepository.countByFollowingIdAndStatus(userId, FollowStatus.ACCEPTED));
+        response.setFollowingCount(followRepository.countByFollowerIdAndStatus(userId, FollowStatus.ACCEPTED));
+        return response;
     }
 
     @Transactional
@@ -49,9 +55,18 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public UserResponse getPublicProfile(Long userId) {
-        User user = findUserById(userId);
-        return UserResponse.from(user);
+    public UserResponse getPublicProfile(Long targetUserId, Long viewerUserId) {
+        User user = findUserById(targetUserId);
+        UserResponse response = UserResponse.from(user);
+        response.setFollowerCount(followRepository.countByFollowingIdAndStatus(targetUserId, FollowStatus.ACCEPTED));
+        response.setFollowingCount(followRepository.countByFollowerIdAndStatus(targetUserId, FollowStatus.ACCEPTED));
+        if (viewerUserId != null && !viewerUserId.equals(targetUserId)) {
+            String status = followRepository.findByFollowerIdAndFollowingId(viewerUserId, targetUserId)
+                    .map(f -> f.getStatus().name())
+                    .orElse("NONE");
+            response.setFollowStatus(status);
+        }
+        return response;
     }
 
     @Transactional

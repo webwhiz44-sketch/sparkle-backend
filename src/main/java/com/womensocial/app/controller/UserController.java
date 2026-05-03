@@ -61,7 +61,10 @@ public class UserController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get public profile of a user")
-    public ResponseEntity<ApiResponse<UserResponse>> getPublicProfile(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.success(userService.getPublicProfile(id)));
+    public ResponseEntity<ApiResponse<UserResponse>> getPublicProfile(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long viewerId = userDetails != null ? Long.parseLong(userDetails.getUsername()) : null;
+        return ResponseEntity.ok(ApiResponse.success(userService.getPublicProfile(id, viewerId)));
     }
 }

@@ -31,6 +31,16 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             nativeQuery = true)
     Page<Post> findByTag(@Param("tag") String tag, Pageable pageable);
 
+    @Query("""
+            SELECT p FROM Post p
+            WHERE p.user.id IN (
+                SELECT f.following.id FROM Follow f
+                WHERE f.follower.id = :userId AND f.status = 'ACCEPTED'
+            )
+            ORDER BY p.createdAt DESC
+            """)
+    Page<Post> findCircleFeed(@Param("userId") Long userId, Pageable pageable);
+
     @Query(value = """
             SELECT tag FROM (
                 SELECT unnest(topic_tags) AS tag FROM posts

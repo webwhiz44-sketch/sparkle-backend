@@ -45,6 +45,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/communities/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/stories/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/tags/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/users/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/follows/followers/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/follows/following/**").permitAll()
                 .anyRequest().authenticated()
             );
 
