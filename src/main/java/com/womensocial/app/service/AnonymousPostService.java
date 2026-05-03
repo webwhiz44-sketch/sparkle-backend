@@ -56,11 +56,11 @@ public class AnonymousPostService {
 
     @Transactional(readOnly = true)
     public PagedResponse<AnonymousPostResponse> getFeed(Long userId, int page, int size) {
-        PageRequest pageRequest = PageRequest.of(page, Math.min(size, AppConstants.MAX_PAGE_SIZE),
-                Sort.by(Sort.Direction.DESC, "createdAt"));
+        PageRequest pageRequest = PageRequest.of(page, Math.min(size, AppConstants.MAX_PAGE_SIZE));
         Page<AnonymousPost> posts = userId != null
                 ? anonymousPostRepository.findAllExcludingBlocked(userId, pageRequest)
-                : anonymousPostRepository.findAll(pageRequest);
+                : anonymousPostRepository.findAll(PageRequest.of(page, Math.min(size, AppConstants.MAX_PAGE_SIZE),
+                        Sort.by(Sort.Direction.DESC, "createdAt")));
 
         return toPagedResponse(posts, userId);
     }
