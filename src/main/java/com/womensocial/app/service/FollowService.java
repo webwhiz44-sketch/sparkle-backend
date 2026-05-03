@@ -106,6 +106,13 @@ public class FollowService {
                 .orElse("NONE");
     }
 
+    @Transactional(readOnly = true)
+    public FollowResponse getMyFollow(Long currentUserId, Long targetUserId) {
+        return followRepository.findByFollowerIdAndFollowingId(currentUserId, targetUserId)
+                .map(FollowResponse::from)
+                .orElseThrow(() -> new ResourceNotFoundException("No follow relationship found"));
+    }
+
     private Follow findFollowById(Long followId) {
         return followRepository.findById(followId)
                 .orElseThrow(() -> new ResourceNotFoundException("Follow not found with id: " + followId));

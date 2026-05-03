@@ -30,7 +30,7 @@ public class Follow {
     private User following;
 
     @Enumerated(EnumType.STRING)
-    @Column(columnDefinition = "follow_status", nullable = false)
+    @Column(name = "status", nullable = false, length = 20)
     @Builder.Default
     private FollowStatus status = FollowStatus.PENDING;
 

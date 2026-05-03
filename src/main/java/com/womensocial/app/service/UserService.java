@@ -75,6 +75,24 @@ public class UserService {
         userRepository.delete(user);
     }
 
+    @Transactional(readOnly = true)
+    public java.util.List<UserResponse> searchUsers(String query, Long currentUserId) {
+        if (query == null || query.isBlank() || query.length() < 2) return java.util.List.of();
+        var users = userRepository.searchByDisplayName(query.trim(),
+                org.springframework.data.domain.PageRequest.of(0, 20));
+        return users.stream()
+                .filter(u -> !u.getId().equals(currentUserId))
+                .map(u -> {
+                    UserResponse r = UserResponse.from(u);
+                    String status = followRepository.findByFollowerIdAndFollowingId(currentUserId, u.getId())
+                            .map(f -> f.getStatus().name())
+                            .orElse("NONE");
+                    r.setFollowStatus(status);
+                    return r;
+                })
+                .toList();
+    }
+
     public User findUserById(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));

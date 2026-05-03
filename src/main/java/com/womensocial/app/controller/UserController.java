@@ -59,6 +59,15 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success("Account deleted successfully", null));
     }
 
+    @GetMapping("/search")
+    @Operation(summary = "Search users by display name")
+    public ResponseEntity<ApiResponse<java.util.List<UserResponse>>> searchUsers(
+            @RequestParam String q,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long currentUserId = userDetails != null ? Long.parseLong(userDetails.getUsername()) : null;
+        return ResponseEntity.ok(ApiResponse.success(userService.searchUsers(q, currentUserId)));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Get public profile of a user")
     public ResponseEntity<ApiResponse<UserResponse>> getPublicProfile(

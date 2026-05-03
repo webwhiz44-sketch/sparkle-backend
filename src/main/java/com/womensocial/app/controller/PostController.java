@@ -114,6 +114,16 @@ public class PostController {
         return ResponseEntity.ok(ApiResponse.success("Post unsaved", null));
     }
 
+    @GetMapping("/circle")
+    @Operation(summary = "Get posts from accepted follows only (From Your Circle)")
+    public ResponseEntity<ApiResponse<PagedResponse<PostResponse>>> getCircleFeed(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "" + AppConstants.DEFAULT_PAGE_SIZE) int size) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success(postService.getCircleFeed(userId, page, size)));
+    }
+
     @GetMapping("/my")
     @Operation(summary = "Get posts by the current user")
     public ResponseEntity<ApiResponse<PagedResponse<PostResponse>>> getMyPosts(

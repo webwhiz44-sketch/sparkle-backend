@@ -81,6 +81,15 @@ public class FollowController {
         return ResponseEntity.ok(ApiResponse.success(Map.of("status", status)));
     }
 
+    @GetMapping("/my-follow/{targetUserId}")
+    @Operation(summary = "Get the follow record between current user and target (for unfollowing)")
+    public ResponseEntity<ApiResponse<FollowResponse>> getMyFollow(
+            @PathVariable Long targetUserId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success(followService.getMyFollow(userId, targetUserId)));
+    }
+
     @GetMapping("/followers/{userId}")
     @Operation(summary = "Get followers of a user")
     public ResponseEntity<ApiResponse<List<UserResponse>>> getFollowers(@PathVariable Long userId) {

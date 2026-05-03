@@ -64,9 +64,16 @@ public class PostService {
     public PagedResponse<PostResponse> getFeed(Long userId, int page, int size) {
         PageRequest pageRequest = PageRequest.of(page, Math.min(size, AppConstants.MAX_PAGE_SIZE));
         Page<Post> posts = userId != null
-                ? postRepository.findCircleFeed(userId, pageRequest)
+                ? postRepository.findFeedForUser(userId, pageRequest)
                 : postRepository.findAll(PageRequest.of(page, Math.min(size, AppConstants.MAX_PAGE_SIZE),
                         Sort.by(Sort.Direction.DESC, "createdAt")));
+        return toPagedResponse(posts, userId);
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponse<PostResponse> getCircleFeed(Long userId, int page, int size) {
+        PageRequest pageRequest = PageRequest.of(page, Math.min(size, AppConstants.MAX_PAGE_SIZE));
+        Page<Post> posts = postRepository.findCircleFeed(userId, pageRequest);
         return toPagedResponse(posts, userId);
     }
 
