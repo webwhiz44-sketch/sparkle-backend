@@ -11,10 +11,11 @@ import java.util.List;
 public class CreateStoryRequest {
 
     @NotBlank
-    @Size(max = 300)
+    @Size(max = 150, message = "Title cannot exceed 150 characters")
     private String title;
 
     @NotBlank
+    @Size(max = 10000, message = "Story cannot exceed 10,000 characters")
     private String body;
 
     private String coverImageUrl;

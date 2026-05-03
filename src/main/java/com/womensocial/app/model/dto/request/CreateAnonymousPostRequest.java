@@ -8,6 +8,7 @@ import java.util.List;
 @Data
 public class CreateAnonymousPostRequest {
 
+    @Size(max = 500, message = "Spill cannot exceed 500 characters")
     private String content;
 
     private String imageUrl;

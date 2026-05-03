@@ -10,6 +10,7 @@ import java.util.List;
 public class CreatePostRequest {
 
     @NotBlank(message = "Content is required")
+    @Size(max = 1000, message = "Post cannot exceed 1000 characters")
     private String content;
 
     private Long communityId;
