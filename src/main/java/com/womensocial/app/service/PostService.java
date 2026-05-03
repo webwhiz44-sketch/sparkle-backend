@@ -62,11 +62,12 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public PagedResponse<PostResponse> getFeed(Long userId, int page, int size) {
-        PageRequest pageRequest = PageRequest.of(page, Math.min(size, AppConstants.MAX_PAGE_SIZE),
-                Sort.by(Sort.Direction.DESC, "createdAt"));
+        // Native queries already have ORDER BY — do not pass Sort via Pageable
+        PageRequest pageRequest = PageRequest.of(page, Math.min(size, AppConstants.MAX_PAGE_SIZE));
         Page<Post> posts = userId != null
                 ? postRepository.findFeedForUser(userId, pageRequest)
-                : postRepository.findAll(pageRequest);
+                : postRepository.findAll(PageRequest.of(page, Math.min(size, AppConstants.MAX_PAGE_SIZE),
+                        Sort.by(Sort.Direction.DESC, "createdAt")));
         return toPagedResponse(posts, userId);
     }
 
