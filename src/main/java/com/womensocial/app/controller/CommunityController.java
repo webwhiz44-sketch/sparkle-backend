@@ -83,14 +83,24 @@ public class CommunityController {
         return ResponseEntity.ok(ApiResponse.success(communityService.getMyCommunities(userId, page, size)));
     }
 
+    @GetMapping("/{id}/members")
+    @Operation(summary = "Get community members")
+    public ResponseEntity<ApiResponse<PagedResponse<CommunityMemberResponse>>> getCommunityMembers(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "30") int size) {
+        return ResponseEntity.ok(ApiResponse.success(communityService.getMembers(id, page, size)));
+    }
+
     @GetMapping("/{id}/posts")
     @Operation(summary = "Get community feed")
     public ResponseEntity<ApiResponse<PagedResponse<PostResponse>>> getCommunityPosts(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "" + AppConstants.DEFAULT_PAGE_SIZE) int size) {
+            @RequestParam(defaultValue = "" + AppConstants.DEFAULT_PAGE_SIZE) int size,
+            @RequestParam(defaultValue = "latest") String sort) {
         Long userId = userDetails != null ? Long.parseLong(userDetails.getUsername()) : null;
-        return ResponseEntity.ok(ApiResponse.success(postService.getCommunityPosts(id, userId, page, size)));
+        return ResponseEntity.ok(ApiResponse.success(postService.getCommunityPosts(id, userId, page, size, sort)));
     }
 }

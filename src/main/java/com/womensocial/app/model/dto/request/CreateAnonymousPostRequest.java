@@ -17,4 +17,6 @@ public class CreateAnonymousPostRequest {
     private List<String> topicTags;
 
     private CreatePollRequest poll;
+
+    private boolean anonymous = true;
 }

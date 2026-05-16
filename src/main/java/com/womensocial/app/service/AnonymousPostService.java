@@ -43,6 +43,7 @@ public class AnonymousPostService {
                 .content(request.getContent())
                 .imageUrl(request.getImageUrl())
                 .topicTags(request.getTopicTags())
+                .anonymous(request.isAnonymous())
                 .build();
 
         post = anonymousPostRepository.save(post);

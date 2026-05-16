@@ -48,8 +48,10 @@ public class GlobalExceptionHandler {
             String field = ((FieldError) error).getField();
             errors.put(field, error.getDefaultMessage());
         });
+        log.warn("[Validation] Failed on endpoint={} fields={}", ex.getParameter().getMethod(), errors);
+        String firstError = errors.values().stream().findFirst().orElse("Validation failed");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error("Validation failed", "VALIDATION_ERROR"));
+                .body(ApiResponse.error(firstError, "VALIDATION_ERROR"));
     }
 
     @ExceptionHandler(Exception.class)

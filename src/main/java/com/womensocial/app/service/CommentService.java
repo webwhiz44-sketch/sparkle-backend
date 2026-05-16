@@ -6,6 +6,7 @@ import com.womensocial.app.model.dto.request.CreateCommentRequest;
 import com.womensocial.app.model.dto.response.CommentResponse;
 import com.womensocial.app.model.dto.response.PagedResponse;
 import com.womensocial.app.model.entity.*;
+import com.womensocial.app.model.enums.NotificationType;
 import com.womensocial.app.repository.StoryRepository;
 import com.womensocial.app.repository.CommentRepository;
 import com.womensocial.app.repository.LikeRepository;
@@ -27,6 +28,7 @@ public class CommentService {
     private final AnonymousPostService anonymousPostService;
     private final StoryRepository storyRepository;
     private final LikeRepository likeRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public CommentResponse commentOnPost(Long postId, Long userId, CreateCommentRequest request) {
@@ -43,7 +45,11 @@ public class CommentService {
 
         comment = commentRepository.save(comment);
         post.setCommentCount(post.getCommentCount() + 1);
-        // Post update handled lazily — count is denormalized
+        String preview = request.getContent().length() > 40
+                ? request.getContent().substring(0, 40) + "…"
+                : request.getContent();
+        notificationService.send(post.getUser(), user, NotificationType.COMMENT,
+                user.getDisplayName() + " commented: \"" + preview + "\"", post.getId(), null);
         return CommentResponse.from(comment);
     }
 

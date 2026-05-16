@@ -7,7 +7,6 @@ import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
 
-// IMPORTANT: No user fields — anonymity must be preserved
 @Data
 @Builder
 public class AnonymousPostResponse {
@@ -19,18 +18,30 @@ public class AnonymousPostResponse {
     private int likeCount;
     private int commentCount;
     private boolean likedByMe;
+    private boolean anonymous;
+    private Long authorId;
+    private String authorName;
+    private String authorImageUrl;
     private PollResponse poll;
     private LocalDateTime createdAt;
 
     public static AnonymousPostResponse from(AnonymousPost post) {
-        return AnonymousPostResponse.builder()
+        AnonymousPostResponseBuilder builder = AnonymousPostResponse.builder()
                 .id(post.getId())
                 .content(post.getContent())
                 .imageUrl(post.getImageUrl())
                 .topicTags(post.getTopicTags())
                 .likeCount(post.getLikeCount())
                 .commentCount(post.getCommentCount())
-                .createdAt(post.getCreatedAt())
-                .build();
+                .anonymous(post.isAnonymous())
+                .createdAt(post.getCreatedAt());
+
+        if (!post.isAnonymous() && post.getUser() != null) {
+            builder.authorId(post.getUser().getId())
+                   .authorName(post.getUser().getDisplayName())
+                   .authorImageUrl(post.getUser().getProfileImageUrl());
+        }
+
+        return builder.build();
     }
 }

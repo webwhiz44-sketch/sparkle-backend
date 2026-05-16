@@ -8,6 +8,7 @@ import com.womensocial.app.model.dto.response.PagedResponse;
 import com.womensocial.app.model.dto.response.PostResponse;
 import com.womensocial.app.exception.BadRequestException;
 import com.womensocial.app.model.entity.*;
+import com.womensocial.app.model.enums.NotificationType;
 import com.womensocial.app.repository.*;
 import com.womensocial.app.util.AppConstants;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class PostService {
     private final LikeRepository likeRepository;
     private final SavedPostRepository savedPostRepository;
     private final PollService pollService;
+    private final NotificationService notificationService;
 
     @Transactional
     public PostResponse createPost(Long userId, CreatePostRequest request) {
@@ -135,6 +137,8 @@ public class PostService {
         likeRepository.save(Like.builder().user(user).post(post).build());
         post.setLikeCount(post.getLikeCount() + 1);
         postRepository.save(post);
+        notificationService.send(post.getUser(), user, NotificationType.LIKE,
+                user.getDisplayName() + " liked your post", post.getId(), null);
     }
 
     @Transactional
@@ -148,10 +152,12 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public PagedResponse<PostResponse> getCommunityPosts(Long communityId, Long userId, int page, int size) {
+    public PagedResponse<PostResponse> getCommunityPosts(Long communityId, Long userId, int page, int size, String sort) {
+        Sort pageSort = "trending".equalsIgnoreCase(sort)
+                ? Sort.by(Sort.Direction.DESC, "likeCount").and(Sort.by(Sort.Direction.DESC, "commentCount")).and(Sort.by(Sort.Direction.DESC, "createdAt"))
+                : Sort.by(Sort.Direction.DESC, "createdAt");
         Page<Post> posts = postRepository.findByCommunityId(communityId,
-                PageRequest.of(page, Math.min(size, AppConstants.MAX_PAGE_SIZE),
-                        Sort.by(Sort.Direction.DESC, "createdAt")));
+                PageRequest.of(page, Math.min(size, AppConstants.MAX_PAGE_SIZE), pageSort));
         return toPagedResponse(posts, userId);
     }
 

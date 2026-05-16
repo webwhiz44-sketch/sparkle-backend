@@ -1,0 +1,1 @@
+ALTER TABLE anonymous_posts ADD COLUMN is_anonymous BOOLEAN NOT NULL DEFAULT TRUE;

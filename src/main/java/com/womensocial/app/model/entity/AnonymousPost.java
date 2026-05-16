@@ -34,6 +34,10 @@ public class AnonymousPost {
     @Column(name = "topic_tags", columnDefinition = "varchar(100)[]")
     private List<String> topicTags;
 
+    @Column(name = "is_anonymous", nullable = false)
+    @Builder.Default
+    private boolean anonymous = true;
+
     @Column(name = "like_count")
     @Builder.Default
     private Integer likeCount = 0;

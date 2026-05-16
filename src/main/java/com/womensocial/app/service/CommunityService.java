@@ -3,6 +3,7 @@ package com.womensocial.app.service;
 import com.womensocial.app.exception.BadRequestException;
 import com.womensocial.app.exception.ResourceNotFoundException;
 import com.womensocial.app.model.dto.request.CreateCommunityRequest;
+import com.womensocial.app.model.dto.response.CommunityMemberResponse;
 import com.womensocial.app.model.dto.response.CommunityResponse;
 import com.womensocial.app.model.dto.response.PagedResponse;
 import com.womensocial.app.model.entity.Community;
@@ -136,6 +137,23 @@ public class CommunityService {
                 .totalElements(memberships.getTotalElements())
                 .totalPages(memberships.getTotalPages())
                 .last(memberships.isLast())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponse<CommunityMemberResponse> getMembers(Long communityId, int page, int size) {
+        findById(communityId); // validate exists
+        Page<CommunityMember> members = communityMemberRepository.findByCommunityId(
+                communityId,
+                PageRequest.of(page, Math.min(size, AppConstants.MAX_PAGE_SIZE),
+                        Sort.by(Sort.Direction.ASC, "role").and(Sort.by(Sort.Direction.ASC, "joinedAt"))));
+        return PagedResponse.<CommunityMemberResponse>builder()
+                .content(members.getContent().stream().map(CommunityMemberResponse::from).toList())
+                .page(members.getNumber())
+                .size(members.getSize())
+                .totalElements(members.getTotalElements())
+                .totalPages(members.getTotalPages())
+                .last(members.isLast())
                 .build();
     }
 

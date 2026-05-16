@@ -9,6 +9,7 @@ import com.womensocial.app.model.dto.response.UserResponse;
 import com.womensocial.app.model.entity.Follow;
 import com.womensocial.app.model.entity.User;
 import com.womensocial.app.model.enums.FollowStatus;
+import com.womensocial.app.model.enums.NotificationType;
 import com.womensocial.app.repository.FollowRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,7 @@ public class FollowService {
 
     private final FollowRepository followRepository;
     private final UserService userService;
+    private final NotificationService notificationService;
 
     @Transactional
     public FollowResponse sendFollowRequest(Long followerId, FollowRequest request) {
@@ -40,7 +42,10 @@ public class FollowService {
                 .status(FollowStatus.PENDING)
                 .build();
 
-        return FollowResponse.from(followRepository.save(follow));
+        FollowResponse response = FollowResponse.from(followRepository.save(follow));
+        notificationService.send(following, follower, NotificationType.FOLLOW_REQUEST,
+                follower.getDisplayName() + " wants to follow you", null, null);
+        return response;
     }
 
     @Transactional
@@ -54,6 +59,9 @@ public class FollowService {
         }
         follow.setStatus(FollowStatus.ACCEPTED);
         followRepository.save(follow);
+        notificationService.send(follow.getFollower(), follow.getFollowing(),
+                NotificationType.FOLLOW_ACCEPTED,
+                follow.getFollowing().getDisplayName() + " accepted your follow request", null, null);
     }
 
     @Transactional

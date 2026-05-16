@@ -48,10 +48,12 @@ public class AuthService {
 
     @Transactional
     public AuthResponse signup(SignupRequest request) {
+        log.info("[Auth] Signup attempt for email={}", request.getEmail());
         // Validate and consume the face verification token before creating the account
         faceVerificationService.consumeToken(request.getFaceVerificationToken());
 
         if (userRepository.existsByEmail(request.getEmail())) {
+            log.warn("[Auth] Signup rejected — email already registered: {}", request.getEmail());
             throw new BadRequestException("Email is already registered");
         }
 
@@ -65,6 +67,7 @@ public class AuthService {
                 .build();
 
         user = userRepository.save(user);
+        log.info("[Auth] Signup successful — userId={}, email={}", user.getId(), user.getEmail());
         return generateAuthResponse(user);
     }
 
