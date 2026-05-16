@@ -13,6 +13,7 @@ public class PostResponse {
 
     private Long id;
     private UserResponse author;
+    private boolean anonymous;
     private Long communityId;
     private String communityName;
     private String content;
@@ -27,9 +28,14 @@ public class PostResponse {
     private LocalDateTime updatedAt;
 
     public static PostResponse from(Post post) {
+        boolean anon = Boolean.TRUE.equals(post.getIsAnonymous());
+        UserResponse authorResponse = anon
+                ? UserResponse.builder().id(0L).displayName("Anonymous").build()
+                : UserResponse.from(post.getUser());
         return PostResponse.builder()
                 .id(post.getId())
-                .author(UserResponse.from(post.getUser()))
+                .author(authorResponse)
+                .anonymous(anon)
                 .communityId(post.getCommunity() != null ? post.getCommunity().getId() : null)
                 .communityName(post.getCommunity() != null ? post.getCommunity().getName() : null)
                 .content(post.getContent())

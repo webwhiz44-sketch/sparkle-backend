@@ -21,4 +21,6 @@ public class CreatePostRequest {
     private List<String> topicTags;
 
     private CreatePollRequest poll;
+
+    private boolean anonymous = false;
 }

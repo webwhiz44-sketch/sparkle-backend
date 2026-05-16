@@ -46,6 +46,7 @@ public class PostService {
                 .content(request.getContent())
                 .imageUrl(request.getImageUrl())
                 .topicTags(request.getTopicTags())
+                .isAnonymous(request.isAnonymous())
                 .build();
 
         post = postRepository.save(post);
