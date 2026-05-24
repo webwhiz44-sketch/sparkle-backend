@@ -36,10 +36,13 @@ public class AnonymousPostResponse {
                 .anonymous(post.isAnonymous())
                 .createdAt(post.getCreatedAt());
 
-        if (!post.isAnonymous() && post.getUser() != null) {
-            builder.authorId(post.getUser().getId())
-                   .authorName(post.getUser().getDisplayName())
-                   .authorImageUrl(post.getUser().getProfileImageUrl());
+        if (post.getUser() != null) {
+            // authorId always returned so the owner can delete their own post
+            builder.authorId(post.getUser().getId());
+            if (!post.isAnonymous()) {
+                builder.authorName(post.getUser().getDisplayName())
+                       .authorImageUrl(post.getUser().getProfileImageUrl());
+            }
         }
 
         return builder.build();
