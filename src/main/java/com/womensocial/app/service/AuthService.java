@@ -2,17 +2,14 @@ package com.womensocial.app.service;
 
 import com.womensocial.app.exception.BadRequestException;
 import com.womensocial.app.exception.ResourceNotFoundException;
-import com.womensocial.app.model.dto.request.ChangePasswordRequest;
-import com.womensocial.app.model.dto.request.ForgotPasswordRequest;
 import com.womensocial.app.model.dto.request.LoginRequest;
-import com.womensocial.app.model.dto.request.ResetPasswordRequest;
 import com.womensocial.app.model.dto.request.SignupRequest;
 import com.womensocial.app.model.dto.response.AuthResponse;
 import com.womensocial.app.model.dto.response.UserResponse;
-import com.womensocial.app.model.entity.PasswordResetToken;
+import com.womensocial.app.model.entity.OtpToken;
 import com.womensocial.app.model.entity.RefreshToken;
 import com.womensocial.app.model.entity.User;
-import com.womensocial.app.repository.PasswordResetTokenRepository;
+import com.womensocial.app.repository.OtpTokenRepository;
 import com.womensocial.app.repository.RefreshTokenRepository;
 import com.womensocial.app.repository.UserRepository;
 import com.womensocial.app.security.JwtTokenProvider;
@@ -24,6 +21,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -32,9 +30,13 @@ import java.util.UUID;
 @Slf4j
 public class AuthService {
 
+    private static final int OTP_EXPIRY_MINUTES = 5;
+    private static final int OTP_MAX_ATTEMPTS = 5;
+    private static final int RESEND_COOLDOWN_SECONDS = 30;
+
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final OtpTokenRepository otpTokenRepository;
     private final JwtTokenProvider tokenProvider;
     private final PasswordEncoder passwordEncoder;
     private final FaceVerificationService faceVerificationService;
@@ -43,22 +45,73 @@ public class AuthService {
     @Value("${jwt.refresh-token-expiry}")
     private long refreshTokenExpiry;
 
-    @Value("${app.password-reset.expiry-minutes:30}")
-    private int passwordResetExpiryMinutes;
+    private final SecureRandom secureRandom = new SecureRandom();
+
+    @Transactional
+    public void requestOtp(String email) {
+        String normalizedEmail = email.toLowerCase().trim();
+
+        // Enforce resend cooldown — check if a valid OTP was issued within the last 30 seconds
+        otpTokenRepository.findLatestValid(normalizedEmail, LocalDateTime.now()).ifPresent(existing -> {
+            long secondsSinceCreation = java.time.Duration.between(existing.getCreatedAt(), LocalDateTime.now()).getSeconds();
+            if (secondsSinceCreation < RESEND_COOLDOWN_SECONDS) {
+                throw new BadRequestException("Please wait " + (RESEND_COOLDOWN_SECONDS - secondsSinceCreation) + " seconds before requesting a new code.");
+            }
+        });
+
+        // Invalidate any previous OTPs for this email
+        otpTokenRepository.invalidateAllForEmail(normalizedEmail);
+
+        // Generate 6-digit code
+        String rawCode = String.format("%06d", secureRandom.nextInt(1_000_000));
+        String hashedCode = passwordEncoder.encode(rawCode);
+
+        OtpToken otp = OtpToken.builder()
+                .email(normalizedEmail)
+                .code(hashedCode)
+                .expiresAt(LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES))
+                .build();
+        otpTokenRepository.save(otp);
+
+        emailService.sendOtpEmail(normalizedEmail, rawCode);
+        log.info("[Auth] OTP issued for email={}", normalizedEmail);
+    }
+
+    @Transactional
+    public AuthResponse login(LoginRequest request) {
+        String email = request.getEmail().toLowerCase().trim();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
+
+        if (user.getPassword() == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new BadCredentialsException("Invalid email or password");
+        }
+
+        if (!user.getIsActive()) {
+            throw new BadRequestException("Account is deactivated");
+        }
+
+        log.info("[Auth] Login successful for userId={}", user.getId());
+        return generateAuthResponse(user);
+    }
 
     @Transactional
     public AuthResponse signup(SignupRequest request) {
-        log.info("[Auth] Signup attempt for email={}", request.getEmail());
-        // Validate and consume the face verification token before creating the account
+        String email = request.getEmail().toLowerCase().trim();
+        log.info("[Auth] Signup attempt for email={}", email);
+
         faceVerificationService.consumeToken(request.getFaceVerificationToken());
 
-        if (userRepository.existsByEmail(request.getEmail())) {
-            log.warn("[Auth] Signup rejected — email already registered: {}", request.getEmail());
-            throw new BadRequestException("Email is already registered");
+        if (userRepository.existsByEmail(email)) {
+            log.warn("[Auth] Signup rejected — email already registered: {}", email);
+            throw new BadRequestException("Email is already registered. Please sign in instead.");
         }
 
+        validateAndConsumeOtp(email, request.getOtpCode());
+
         User user = User.builder()
-                .email(request.getEmail().toLowerCase().trim())
+                .email(email)
                 .password(passwordEncoder.encode(request.getPassword()))
                 .displayName(request.getDisplayName())
                 .interests(request.getInterests())
@@ -68,22 +121,6 @@ public class AuthService {
 
         user = userRepository.save(user);
         log.info("[Auth] Signup successful — userId={}, email={}", user.getId(), user.getEmail());
-        return generateAuthResponse(user);
-    }
-
-    @Transactional
-    public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail().toLowerCase().trim())
-                .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
-
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new BadCredentialsException("Invalid email or password");
-        }
-
-        if (!user.getIsActive()) {
-            throw new BadRequestException("Account is deactivated");
-        }
-
         return generateAuthResponse(user);
     }
 
@@ -100,7 +137,6 @@ public class AuthService {
             throw new BadRequestException("Refresh token has expired");
         }
 
-        // Rotate refresh token
         refreshToken.setRevoked(true);
         refreshTokenRepository.save(refreshToken);
 
@@ -114,67 +150,25 @@ public class AuthService {
         refreshTokenRepository.revokeAllByUser(user);
     }
 
-    @Transactional
-    public void changePassword(Long userId, ChangePasswordRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    private void validateAndConsumeOtp(String email, String rawCode) {
+        OtpToken otp = otpTokenRepository.findLatestValid(email, LocalDateTime.now())
+                .orElseThrow(() -> new BadRequestException("Code expired or not found. Please request a new one."));
 
-        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
-            throw new BadRequestException("Current password is incorrect");
+        if (otp.getAttempts() >= OTP_MAX_ATTEMPTS) {
+            throw new BadRequestException("Too many incorrect attempts. Please request a new code.");
         }
 
-        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
-            throw new BadRequestException("New password must be different from the current password");
+        if (!passwordEncoder.matches(rawCode, otp.getCode())) {
+            otp.setAttempts(otp.getAttempts() + 1);
+            otpTokenRepository.save(otp);
+            int remaining = OTP_MAX_ATTEMPTS - otp.getAttempts();
+            throw new BadCredentialsException(remaining > 0
+                    ? "Incorrect code. " + remaining + " attempt" + (remaining == 1 ? "" : "s") + " remaining."
+                    : "Too many incorrect attempts. Please request a new code.");
         }
 
-        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-        userRepository.save(user);
-        refreshTokenRepository.revokeAllByUser(user);
-    }
-
-    @Transactional
-    public void forgotPassword(ForgotPasswordRequest request) {
-        // Always return success to prevent email enumeration
-        userRepository.findByEmail(request.getEmail().toLowerCase().trim()).ifPresent(user -> {
-            // Invalidate any existing unused tokens
-            passwordResetTokenRepository.invalidateAllForUser(user);
-
-            String rawToken = UUID.randomUUID().toString().replace("-", "");
-            PasswordResetToken resetToken = PasswordResetToken.builder()
-                    .user(user)
-                    .token(rawToken)
-                    .expiresAt(LocalDateTime.now().plusMinutes(passwordResetExpiryMinutes))
-                    .build();
-            passwordResetTokenRepository.save(resetToken);
-
-            emailService.sendPasswordResetEmail(user.getEmail(), user.getDisplayName(), rawToken);
-            log.info("Password reset token issued for user {}", user.getId());
-        });
-    }
-
-    @Transactional
-    public void resetPassword(ResetPasswordRequest request) {
-        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(request.getToken())
-                .orElseThrow(() -> new BadRequestException("Invalid or expired reset token"));
-
-        if (resetToken.getUsed()) {
-            throw new BadRequestException("Reset token has already been used");
-        }
-
-        if (resetToken.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new BadRequestException("Reset token has expired");
-        }
-
-        User user = resetToken.getUser();
-        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-        userRepository.save(user);
-
-        resetToken.setUsed(true);
-        passwordResetTokenRepository.save(resetToken);
-
-        // Revoke all refresh tokens so existing sessions are invalidated
-        refreshTokenRepository.revokeAllByUser(user);
-        log.info("Password reset completed for user {}", user.getId());
+        otp.setUsed(true);
+        otpTokenRepository.save(otp);
     }
 
     private AuthResponse generateAuthResponse(User user) {

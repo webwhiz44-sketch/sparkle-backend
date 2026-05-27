@@ -25,6 +25,35 @@ public class EmailService {
     private String frontendUrl;
 
     @Async
+    public void sendOtpEmail(String toEmail, String otpCode) {
+        String html = """
+                <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:40px 32px;background:#fff;border-radius:16px;">
+                  <h2 style="color:#1a1a1a;margin:0 0 8px;">Your Gul sign-in code</h2>
+                  <p style="color:#666;font-size:14px;margin:0 0 28px;">Use this code to sign in or create your account. It expires in 5 minutes.</p>
+                  <div style="background:#f5f5f5;border-radius:12px;padding:28px;text-align:center;margin-bottom:28px;">
+                    <span style="font-size:40px;font-weight:900;letter-spacing:12px;color:#1a1a1a;">%s</span>
+                  </div>
+                  <p style="color:#aaa;font-size:12px;text-align:center;margin:0;">If you didn't request this code, you can safely ignore this email.</p>
+                  <hr style="border:none;border-top:1px solid #eee;margin:24px 0;">
+                  <p style="color:#ccc;font-size:11px;text-align:center;margin:0;">Gul — a safe space for women 💜</p>
+                </div>
+                """.formatted(otpCode);
+
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(fromAddress);
+            helper.setTo(toEmail);
+            helper.setSubject("Your Gul verification code: " + otpCode);
+            helper.setText(html, true);
+            mailSender.send(message);
+            log.info("OTP email sent to {}", toEmail);
+        } catch (MessagingException e) {
+            log.error("Failed to send OTP email to {}: {}", toEmail, e.getMessage());
+        }
+    }
+
+    @Async
     public void sendPasswordResetEmail(String toEmail, String displayName, String resetToken) {
         String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
 

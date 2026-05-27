@@ -52,7 +52,7 @@ public class PostService {
         post = postRepository.save(post);
 
         if (community != null) {
-            community.setPostCount(community.getPostCount() + 1);
+            community.setPostCount((community.getPostCount() != null ? community.getPostCount() : 0) + 1);
             communityRepository.save(community);
         }
 
@@ -122,7 +122,7 @@ public class PostService {
         }
         if (post.getCommunity() != null) {
             Community community = post.getCommunity();
-            community.setPostCount(Math.max(0, community.getPostCount() - 1));
+            community.setPostCount(Math.max(0, (community.getPostCount() != null ? community.getPostCount() : 0) - 1));
             communityRepository.save(community);
         }
         postRepository.delete(post);
